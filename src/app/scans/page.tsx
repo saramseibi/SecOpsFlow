@@ -5,10 +5,7 @@ import { TableSkeleton } from '@/components/ui/LoadingSkeleton';
 
 export default function ScansPage() {
   return (
-    <AppLayout
-      title="Scans"
-      subtitle="Security pipeline history — every commit scan across all repositories"
-    >
+    <AppLayout title="Scan History" subtitle="Every security pipeline run across your repositories">
       <Suspense fallback={<TableSkeleton rows={10} cols={10} />}>
         <ScansClient />
       </Suspense>

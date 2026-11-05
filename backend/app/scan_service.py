@@ -206,9 +206,13 @@ def apply_dast_artifact_metadata(db: Session, scan: Scan, artifact: dict | None,
     db.commit()
 
 
-def finalize_scan(db: Session, scan: Scan, *, status: str) -> None:
+def finalize_scan(db: Session, scan: Scan, *, status: str, completed_at: str | None = None) -> None:
+    """`completed_at` is the run's own GitHub timestamp when known, so a scan finalized late
+    (by the reconciler, after a lost webhook) still gets its real duration.
+    """
     scan.status = status
-    scan.completed_at = datetime.now(timezone.utc)
+    run_finished = _parse_github_timestamp(completed_at)
+    scan.completed_at = run_finished.replace(tzinfo=timezone.utc) if run_finished else datetime.now(timezone.utc)
     if scan.started_at:
         started = scan.started_at if scan.started_at.tzinfo else scan.started_at.replace(tzinfo=timezone.utc)
         scan.duration_seconds = int((scan.completed_at - started).total_seconds())

@@ -132,6 +132,12 @@ export interface DashboardSummary {
   resolved_count: number;
   mttr_days: number;
   scans_this_week: number;
+  /** Findings detected in the last 7 days, whatever their current status. */
+  new_this_week: number;
+  critical_new_this_week: number;
+  high_new_this_week: number;
+  /** Findings moved to resolved in the last 7 days. */
+  resolved_this_week: number;
 }
 
 export interface TrendDataPoint {

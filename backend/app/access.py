@@ -4,6 +4,8 @@ scope requests to. Used to validate that an `account` or `repository_id` filter 
 request supplies actually belongs to the authenticated user, rather than trusting it.
 """
 
+import asyncio
+import hashlib
 import time
 from datetime import datetime, timezone
 
@@ -48,6 +50,8 @@ def clear_github_connection(user: User, db: Session) -> None:
     user.github_refresh_token_expires_at = None
     db.add(user)
     db.commit()
+    # Don't keep honoring a disconnected/dead token's logins until the cache expires.
+    _logins_cache.clear()
 
 
 async def _refresh_access_token(user: User, db: Session) -> str:
@@ -114,19 +118,31 @@ async def get_valid_github_token(user: User, db: Session) -> str:
     return user.github_access_token
 
 
-async def get_accessible_logins(token: str, own_login: str | None) -> set[str]:
-    logins = {own_login} if own_login else set()
-    async with httpx.AsyncClient() as client:
-        org_res = await client.get(
-            f"{GITHUB_API_URL}/user/orgs",
-            headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
-            params={"per_page": 100},
-        )
+# Every scan/vulnerability/dashboard request needs the caller's accessible logins, and
+# resolving them costs two GitHub API round-trips (~1s+). They're cached per token for a
+# short while -- long enough that navigating the app doesn't re-ask GitHub on every
+# request, short enough that a revoked org membership stops applying within minutes.
+_LOGINS_CACHE_TTL_SECONDS = 300
+_logins_cache: dict[str, tuple[float, set[str]]] = {}
+# Lookups already running, so parallel requests (e.g. a page's list + summary) share one.
+_logins_in_flight: dict[str, asyncio.Task] = {}
 
-        collab_res = await client.get(
-            f"{GITHUB_API_URL}/user/repos",
-            headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
-            params={"per_page": 100, "affiliation": "collaborator,organization_member"},
+
+def _logins_cache_key(token: str, own_login: str | None) -> str:
+    return hashlib.sha256(f"{own_login}:{token}".encode()).hexdigest()
+
+
+async def _fetch_accessible_logins(token: str, own_login: str | None) -> set[str]:
+    logins = {own_login} if own_login else set()
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+    async with httpx.AsyncClient() as client:
+        org_res, collab_res = await asyncio.gather(
+            client.get(f"{GITHUB_API_URL}/user/orgs", headers=headers, params={"per_page": 100}),
+            client.get(
+                f"{GITHUB_API_URL}/user/repos",
+                headers=headers,
+                params={"per_page": 100, "affiliation": "collaborator,organization_member"},
+            ),
         )
     if org_res.status_code == 200:
         logins.update(org["login"] for org in org_res.json())
@@ -135,6 +151,22 @@ async def get_accessible_logins(token: str, own_login: str | None) -> set[str]:
             repo["owner"]["login"] for repo in collab_res.json() if repo.get("owner", {}).get("type") == "Organization"
         )
     return logins
+
+
+async def get_accessible_logins(token: str, own_login: str | None) -> set[str]:
+    key = _logins_cache_key(token, own_login)
+    cached = _logins_cache.get(key)
+    if cached and cached[0] > time.monotonic():
+        return set(cached[1])
+
+    task = _logins_in_flight.get(key)
+    if task is None:
+        task = asyncio.ensure_future(_fetch_accessible_logins(token, own_login))
+        _logins_in_flight[key] = task
+        task.add_done_callback(lambda _: _logins_in_flight.pop(key, None))
+    logins = await task
+    _logins_cache[key] = (time.monotonic() + _LOGINS_CACHE_TTL_SECONDS, logins)
+    return set(logins)
 
 
 async def get_user_accessible_logins(user: User, db: Session) -> set[str]:

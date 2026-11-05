@@ -1,4 +1,4 @@
-import type { Vulnerability, Scan, DashboardSummary, TrendDataPoint, ScannerStat,  } from '@/types';
+import type { Vulnerability, Scan, DashboardSummary, TrendDataPoint, ScannerStat } from '@/types';
 
 export const mockVulnerabilities: Vulnerability[] = [];
 
@@ -20,4 +20,8 @@ export const mockDashboardSummary: DashboardSummary = {
   resolved_count: 0,
   mttr_days: 0,
   scans_this_week: 0,
+  new_this_week: 0,
+  critical_new_this_week: 0,
+  high_new_this_week: 0,
+  resolved_this_week: 0,
 };

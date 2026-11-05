@@ -49,7 +49,7 @@ export default function VulnPagination({
         <select
           value={pageSize}
           onChange={(e) => { onPageSizeChange(Number(e.target.value)); onPageChange(1); }}
-          className="bg-muted border border-border rounded-md text-xs text-foreground px-2 py-1 focus:outline-none focus:border-primary cursor-pointer"
+          className="bg-input border border-border rounded-md text-xs text-foreground px-2 py-1 focus:outline-none focus:border-primary cursor-pointer"
           aria-label="Rows per page"
         >
           {PAGE_SIZE_OPTIONS.map((size) => (

@@ -2,19 +2,10 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  ChevronUp,
-  ChevronDown,
-  ChevronsUpDown,
-  RefreshCw,
-  Eye,
-  GitCommit,
-  GitBranch,
-  Clock,
-  Zap,
-} from 'lucide-react';
+import { ChevronRight, RefreshCw, Eye, GitCommit, GitBranch, Clock, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import ScanStatusBadge from './ScanStatusBadge';
+import SortableHeader, { type SortDir } from '@/components/ui/SortableHeader';
 import type { Scan, ScanTrigger } from '@/types';
 
 interface ScanTableProps {
@@ -28,7 +19,6 @@ type SortKey =
   | 'duration_seconds'
   | 'total_vulnerabilities'
   | 'status';
-type SortDir = 'asc' | 'desc';
 
 const TRIGGER_CONFIG: Record<ScanTrigger, { label: string; className: string }> = {
   push: { label: 'Push', className: 'bg-primary/10 text-primary border border-primary/20' },
@@ -55,15 +45,6 @@ function formatDateTime(dateStr: string) {
     hour12: false,
     timeZone: 'Africa/Tunis',
   });
-}
-
-function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
-  if (sortKey !== col) return <ChevronsUpDown size={11} className="text-muted-foreground/40" />;
-  return sortDir === 'asc' ? (
-    <ChevronUp size={11} className="text-primary" />
-  ) : (
-    <ChevronDown size={11} className="text-primary" />
-  );
 }
 
 export default function ScanTable({ scans }: ScanTableProps) {
@@ -96,48 +77,43 @@ export default function ScanTable({ scans }: ScanTableProps) {
 
   const thClass =
     'px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider';
-  const thSort = `${thClass} cursor-pointer hover:text-foreground transition-colors select-none`;
+  const sortProps = { sortKey, sortDir, onSort: handleSort, className: thClass };
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border">
-            <th className={thSort} onClick={() => handleSort('scan_number')}>
-              <div className="flex items-center gap-1">
-                Scan ID <SortIcon col="scan_number" sortKey={sortKey} sortDir={sortDir} />
-              </div>
+            <SortableHeader column="scan_number" {...sortProps}>
+              Scan ID
+            </SortableHeader>
+            <SortableHeader column="repository" {...sortProps}>
+              Repository
+            </SortableHeader>
+            <th scope="col" className={thClass}>
+              Branch / Commit
             </th>
-            <th className={thSort} onClick={() => handleSort('repository')}>
-              <div className="flex items-center gap-1">
-                Repository <SortIcon col="repository" sortKey={sortKey} sortDir={sortDir} />
-              </div>
+            <th scope="col" className={thClass}>
+              Author
             </th>
-            <th className={thClass}>Branch / Commit</th>
-            <th className={thClass}>Author</th>
-            <th className={thClass}>Trigger</th>
-            <th className={thSort} onClick={() => handleSort('started_at')}>
-              <div className="flex items-center gap-1">
-                Started <SortIcon col="started_at" sortKey={sortKey} sortDir={sortDir} />
-              </div>
+            <th scope="col" className={thClass}>
+              Trigger
             </th>
-            <th className={thSort} onClick={() => handleSort('duration_seconds')}>
-              <div className="flex items-center gap-1">
-                Duration <SortIcon col="duration_seconds" sortKey={sortKey} sortDir={sortDir} />
-              </div>
+            <SortableHeader column="started_at" {...sortProps}>
+              Started
+            </SortableHeader>
+            <SortableHeader column="duration_seconds" {...sortProps}>
+              Duration
+            </SortableHeader>
+            <SortableHeader column="total_vulnerabilities" {...sortProps}>
+              Findings
+            </SortableHeader>
+            <SortableHeader column="status" {...sortProps}>
+              Status
+            </SortableHeader>
+            <th scope="col" className={thClass}>
+              Actions
             </th>
-            <th className={thSort} onClick={() => handleSort('total_vulnerabilities')}>
-              <div className="flex items-center gap-1">
-                Findings{' '}
-                <SortIcon col="total_vulnerabilities" sortKey={sortKey} sortDir={sortDir} />
-              </div>
-            </th>
-            <th className={thSort} onClick={() => handleSort('status')}>
-              <div className="flex items-center gap-1">
-                Status <SortIcon col="status" sortKey={sortKey} sortDir={sortDir} />
-              </div>
-            </th>
-            <th className={thClass}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -152,14 +128,38 @@ export default function ScanTable({ scans }: ScanTableProps) {
                 >
                   {/* Scan ID */}
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="text-xs font-bold text-primary font-mono font-tabular">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedId(isExpanded ? null : scan.id);
+                      }}
+                      aria-expanded={isExpanded}
+                      aria-label={`Scan #${scan.scan_number}: ${isExpanded ? 'hide' : 'show'} scanner results`}
+                      className="inline-flex items-center gap-1 rounded text-[13px] font-bold text-primary font-mono font-tabular"
+                    >
+                      <ChevronRight
+                        size={13}
+                        aria-hidden="true"
+                        className={`text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                      />
                       #{scan.scan_number}
-                    </span>
+                    </button>
                   </td>
 
                   {/* Repository */}
                   <td className="px-4 py-3">
-                    <span className="text-xs font-medium text-foreground">{scan.repository}</span>
+                    {/* Owner muted, repo name emphasized. */}
+                    <span className="text-[13px] whitespace-nowrap" title={scan.repository}>
+                      {scan.repository.includes('/') && (
+                        <span className="text-muted-foreground">
+                          {scan.repository.split('/')[0]}/
+                        </span>
+                      )}
+                      <span className="font-medium text-foreground">
+                        {scan.repository.split('/').slice(-1)[0]}
+                      </span>
+                    </span>
                   </td>
 
                   {/* Branch / Commit */}
@@ -167,14 +167,19 @@ export default function ScanTable({ scans }: ScanTableProps) {
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1">
                         <GitBranch size={10} className="text-muted-foreground flex-shrink-0" />
-                        <span className="text-[11px] text-muted-foreground truncate max-w-[120px]">
+                        <span className="text-xs text-muted-foreground truncate max-w-[140px]">
                           {scan.branch}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
                         <GitCommit size={10} className="text-muted-foreground flex-shrink-0" />
-                        <span className="text-[11px] font-mono text-primary/70">
-                          {scan.commit_sha}
+                        {/* Short SHA like GitHub; the full 40-char hash pushed the Status
+                            and Actions columns off-screen. Full value on hover. */}
+                        <span
+                          className="text-xs font-mono text-muted-foreground/80"
+                          title={scan.commit_sha}
+                        >
+                          {scan.commit_sha?.slice(0, 7)}
                         </span>
                       </div>
                     </div>
@@ -183,7 +188,7 @@ export default function ScanTable({ scans }: ScanTableProps) {
                   {/* Author */}
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary flex-shrink-0">
                         {scan.author
                           ? scan.author
                               .split(' ')
@@ -191,8 +196,11 @@ export default function ScanTable({ scans }: ScanTableProps) {
                               .join('')
                           : '?'}
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {scan.author ?? 'Unknown'}
+                      <span
+                        className="text-xs text-muted-foreground max-w-[140px] truncate"
+                        title={scan.author ?? undefined}
+                      >
+                        {scan.author ? scan.author.split('@')[0] : 'Unknown'}
                       </span>
                     </div>
                   </td>
@@ -200,7 +208,7 @@ export default function ScanTable({ scans }: ScanTableProps) {
                   {/* Trigger */}
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span
-                      className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-sm ${triggerCfg.className}`}
+                      className={`text-xs font-semibold px-1.5 py-0.5 rounded-sm ${triggerCfg.className}`}
                     >
                       {triggerCfg.label}
                     </span>
@@ -232,19 +240,19 @@ export default function ScanTable({ scans }: ScanTableProps) {
                         </span>
                         <div className="flex items-center gap-0.5">
                           {scan.critical_count > 0 && (
-                            <span className="text-[10px] font-semibold px-1 py-0 rounded-sm severity-critical font-tabular">
+                            <span className="text-[11px] font-semibold px-1 py-0 rounded-sm severity-critical font-tabular">
                               {scan.critical_count}C
                             </span>
                           )}
                           {scan.high_count > 0 && (
-                            <span className="text-[10px] font-semibold px-1 py-0 rounded-sm severity-high font-tabular">
+                            <span className="text-[11px] font-semibold px-1 py-0 rounded-sm severity-high font-tabular">
                               {scan.high_count}H
                             </span>
                           )}
                         </div>
                       </div>
                     ) : (
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {scan.status === 'running' ? '—' : '0'}
                       </span>
                     )}
@@ -261,10 +269,10 @@ export default function ScanTable({ scans }: ScanTableProps) {
                       <div className="relative group/view">
                         <button
                           onClick={() => router.push(`/scans/${scan.id}`)}
-                          className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                           aria-label={`View scan #${scan.scan_number} overview`}
                         >
-                          <Eye size={13} />
+                          <Eye size={14} />
                         </button>
                         <span className="tooltip-base bottom-full mb-1 left-1/2 -translate-x-1/2 opacity-0 group-hover/view:opacity-100 transition-opacity">
                           Scan overview
@@ -276,10 +284,10 @@ export default function ScanTable({ scans }: ScanTableProps) {
                             onClick={() =>
                               toast.success(`Scan #${scan.scan_number} queued for retry`)
                             }
-                            className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                            className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                             aria-label={`Retry scan #${scan.scan_number}`}
                           >
-                            <RefreshCw size={13} />
+                            <RefreshCw size={14} />
                           </button>
                           <span className="tooltip-base bottom-full mb-1 left-1/2 -translate-x-1/2 opacity-0 group-hover/retry:opacity-100 transition-opacity">
                             Retry scan
@@ -313,7 +321,7 @@ export default function ScanTable({ scans }: ScanTableProps) {
                               }`}
                             >
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-[11px] font-semibold text-foreground truncate">
+                                <span className="text-xs font-semibold text-foreground truncate">
                                   {sr.scanner}
                                 </span>
                                 {sr.status === 'completed' && (
@@ -333,19 +341,19 @@ export default function ScanTable({ scans }: ScanTableProps) {
                                 {sr.duration_seconds !== null && (
                                   <div className="flex items-center gap-1">
                                     <Clock size={9} className="text-muted-foreground" />
-                                    <span className="text-[10px] text-muted-foreground font-tabular">
+                                    <span className="text-[11px] text-muted-foreground font-tabular">
                                       {formatDuration(sr.duration_seconds)}
                                     </span>
                                   </div>
                                 )}
                                 {sr.status === 'running' && (
-                                  <span className="text-[10px] text-primary">Scanning...</span>
+                                  <span className="text-[11px] text-primary">Scanning...</span>
                                 )}
                                 {sr.status !== 'running' && (
                                   <div className="flex items-center gap-1">
                                     <Zap size={9} className="text-muted-foreground" />
                                     <span
-                                      className={`text-[10px] font-semibold font-tabular ${
+                                      className={`text-[11px] font-semibold font-tabular ${
                                         sr.findings_count > 0 ? 'text-warning' : 'text-success'
                                       }`}
                                     >
@@ -354,7 +362,7 @@ export default function ScanTable({ scans }: ScanTableProps) {
                                   </div>
                                 )}
                                 {sr.error_message && (
-                                  <p className="text-[10px] text-critical leading-snug mt-1">
+                                  <p className="text-[11px] text-critical leading-snug mt-1">
                                     {sr.error_message}
                                   </p>
                                 )}

@@ -65,6 +65,22 @@ GITHUB_DAST_WORKFLOW_NAME_HINTS = [
     if hint.strip()
 ]
 
+# LLM used for the "AI explanation & remediation" feature on a finding. AI_PROVIDER is
+# "gemini" (free tier available) or "anthropic"; left empty, it picks whichever key is set.
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+AI_PROVIDER = os.getenv("AI_PROVIDER", "").lower() or ("gemini" if GEMINI_API_KEY else "anthropic")
+AI_MODEL = os.getenv("AI_MODEL", "") or ("gemini-flash-latest" if AI_PROVIDER == "gemini" else "claude-sonnet-5-5")
+# Tried in order when AI_MODEL is overloaded/unavailable (Gemini's free tier often returns 503).
+AI_FALLBACK_MODELS = [
+    m.strip()
+    for m in (
+        os.getenv("AI_FALLBACK_MODELS")
+        or ("gemini-3.5-flash,gemini-flash-lite-latest" if AI_PROVIDER == "gemini" else "")
+    ).split(",")
+    if m.strip()
+]
+
 # Name of the consolidated JSON report artifact the Scan Overview page's "JSON Artifact"
 # card tracks -- separate from each job's own scan-result.json artifact.
 CI_REPORT_ARTIFACT_NAME = os.getenv("CI_REPORT_ARTIFACT_NAME", "ci-security-report")

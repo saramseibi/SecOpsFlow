@@ -20,7 +20,7 @@ export default function ScanOverviewHeader({ scan }: ScanOverviewHeaderProps) {
     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
       <div className="flex items-center gap-3 flex-wrap">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
             {scan.repository}{' '}
             <span className="text-muted-foreground font-normal">#{scan.scan_number ?? '—'}</span>
           </h2>

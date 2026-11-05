@@ -1,9 +1,17 @@
 'use client';
 
 import React from 'react';
-import { ShieldAlert, AlertOctagon, AlertTriangle, ScanLine, TrendingUp, TrendingDown,  } from 'lucide-react';
-import Icon from '@/components/ui/AppIcon';
+import {
+  ShieldAlert,
+  AlertOctagon,
+  AlertTriangle,
+  ScanLine,
+  ArrowUpRight,
+  Check,
+} from 'lucide-react';
 import { useDashboardSummary } from '@/hooks/useDashboardSummary';
+import CountUp from '@/components/motion/CountUp';
+import { Skeleton } from '@/components/ui/LoadingSkeleton';
 
 function formatRelative(dateStr: string): string {
   const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -15,61 +23,108 @@ function formatRelative(dateStr: string): string {
   return `${Math.floor(diffHr / 24)}d ago`;
 }
 
+type Variant = 'default' | 'critical' | 'high' | 'success' | 'running';
+
+// Each variant maps to one RGB token; the card derives its edge, glow and icon chip from it.
+const TONE: Record<Variant, string> = {
+  default: 'var(--primary)',
+  critical: 'var(--critical)',
+  high: 'var(--high)',
+  success: 'var(--success)',
+  running: 'var(--low)',
+};
+
+// The latest-scan card takes the scan's outcome, so a failed scan never shows as green.
+const SCAN_VARIANT: Record<string, Variant> = {
+  completed: 'success',
+  failed: 'critical',
+  running: 'running',
+};
 
 interface KPICardProps {
   title: string;
-  value: string;
-  subtitle: string;
+  value: React.ReactNode;
+  subtitle?: string;
+  /** Findings added in the last 7 days; replaces the subtitle when given. */
+  newThisWeek?: number;
   icon: React.ElementType;
-  trend?: { direction: 'up' | 'down'; value: string; label: string };
-  variant?: 'default' | 'critical' | 'high' | 'success' | 'info';
-  badge?: string;
+  variant?: Variant;
+  loading?: boolean;
 }
 
-function KPICard({ title, value, subtitle, icon: Icon, trend, variant = 'default', badge }: KPICardProps) {
-  const variantStyles = {
-    default: 'border-border',
-    critical: 'border-critical/40 bg-critical/5',
-    high: 'border-high/30 bg-high/5',
-    success: 'border-success/30 bg-success/5',
-    info: 'border-primary/30 bg-primary/5',
-  };
-
-  const iconStyles = {
-    default: 'bg-muted text-muted-foreground',
-    critical: 'bg-critical/15 text-critical',
-    high: 'bg-high/15 text-high',
-    success: 'bg-success/15 text-success',
-    info: 'bg-primary/15 text-primary',
-  };
-
+function WeeklyDelta({ count }: { count: number }) {
+  if (count === 0) {
+    return (
+      <span className="inline-flex items-center gap-1 text-success">
+        <Check size={12} strokeWidth={2.4} aria-hidden="true" />
+        No new findings this week
+      </span>
+    );
+  }
   return (
-    <div className={`card-elevated p-5 ${variantStyles[variant]} transition-all duration-150 hover:border-opacity-60`}>
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{title}</p>
-          {badge && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-critical text-white">
-              {badge}
-            </span>
-          )}
-        </div>
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${iconStyles[variant]}`}>
-          <Icon size={18} />
+    <>
+      <span className="inline-flex items-center gap-0.5 font-semibold font-tabular text-[rgb(var(--tone))]">
+        <ArrowUpRight size={13} strokeWidth={2.4} aria-hidden="true" />
+        {count.toLocaleString()}
+      </span>
+      <span>new in the last 7 days</span>
+    </>
+  );
+}
+
+function KPICard({
+  title,
+  value,
+  subtitle,
+  newThisWeek,
+  icon: Icon,
+  variant = 'default',
+  loading,
+}: KPICardProps) {
+  return (
+    <div
+      className="card-elevated group overflow-hidden p-4 sm:p-5 min-w-0 transition-colors duration-200 hover:border-[rgb(var(--tone)/0.35)]"
+      style={{ '--tone': TONE[variant] } as React.CSSProperties}
+    >
+      {/* Tone edge + soft corner glow */}
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[rgb(var(--tone)/0.7)] to-transparent"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-[rgb(var(--tone)/0.10)] blur-2xl opacity-70 transition-opacity duration-300 group-hover:opacity-100"
+      />
+
+      <div className="relative flex items-start justify-between gap-2 sm:gap-3 mb-4 sm:mb-5">
+        <p className="eyebrow max-sm:!text-[10px] leading-snug">{title}</p>
+        <div className="tone w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center flex-shrink-0">
+          <Icon size={17} strokeWidth={1.9} />
         </div>
       </div>
-      <div className="mb-2">
-        <span className="text-hero-metric font-bold text-foreground font-tabular">{value}</span>
+      <div className="relative mb-2 min-h-[2.375rem] flex items-end">
+        {loading ? (
+          <Skeleton className="h-8 w-20" />
+        ) : typeof value === 'string' ? (
+          // Text values ("3h ago", "No scans yet") read better a step below the numeric scale.
+          <span className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground leading-tight">
+            {value}
+          </span>
+        ) : (
+          <span className="text-hero-metric font-semibold text-foreground font-tabular">
+            {value}
+          </span>
+        )}
       </div>
-      <p className="text-xs text-muted-foreground">{subtitle}</p>
-      {trend && (
-        <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${
-          trend.direction === 'up' ? 'text-critical' : 'text-success'
-        }`}>
-          {trend.direction === 'up' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-          <span>{trend.value} {trend.label}</span>
-        </div>
-      )}
+      <p className="relative flex items-center gap-1 text-xs text-muted-foreground truncate">
+        {loading ? (
+          ' '
+        ) : newThisWeek !== undefined ? (
+          <WeeklyDelta count={newThisWeek} />
+        ) : (
+          subtitle || ' '
+        )}
+      </p>
     </div>
   );
 }
@@ -80,34 +135,42 @@ export default function DashboardKPICards() {
   const latestScan = summary?.latest_scan ?? null;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
       <KPICard
-        title="Total Vulnerabilities"
-        value={loading ? '—' : String(summary?.total_vulnerabilities ?? 0)}
-        subtitle="Currently open, across all repositories"
+        title="Open Vulnerabilities"
+        value={<CountUp value={summary?.total_vulnerabilities ?? 0} />}
+        loading={loading}
+        newThisWeek={summary?.new_this_week ?? 0}
         icon={ShieldAlert}
         variant="default"
       />
       <KPICard
         title="Critical Severity"
-        value={loading ? '—' : String(summary?.critical_count ?? 0)}
-        subtitle="Requires immediate attention"
+        value={<CountUp value={summary?.critical_count ?? 0} />}
+        loading={loading}
+        newThisWeek={summary?.critical_new_this_week ?? 0}
         icon={AlertOctagon}
         variant="critical"
       />
       <KPICard
         title="High Severity"
-        value={loading ? '—' : String(summary?.high_count ?? 0)}
-        subtitle="Should be addressed soon"
+        value={<CountUp value={summary?.high_count ?? 0} />}
+        loading={loading}
+        newThisWeek={summary?.high_new_this_week ?? 0}
         icon={AlertTriangle}
         variant="high"
       />
       <KPICard
         title="Latest Scan"
-        value={loading ? '—' : latestScan ? formatRelative(latestScan.started_at) : 'No scans yet'}
-        subtitle={latestScan ? `${latestScan.repository} · ${latestScan.branch}` : ''}
+        value={latestScan ? formatRelative(latestScan.started_at) : 'No scans yet'}
+        loading={loading}
+        subtitle={
+          latestScan
+            ? `${latestScan.status === 'failed' ? 'Failed · ' : latestScan.status === 'running' ? 'Running · ' : ''}${latestScan.repository} · ${latestScan.branch}`
+            : ''
+        }
         icon={ScanLine}
-        variant="success"
+        variant={latestScan ? (SCAN_VARIANT[latestScan.status] ?? 'default') : 'default'}
       />
     </div>
   );

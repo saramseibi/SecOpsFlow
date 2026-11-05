@@ -67,7 +67,7 @@ export default function TestsQualityClient({ scanId }: { scanId: string }) {
       </Link>
 
       <div>
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">
           {scan.repository} #{scan.scan_number ?? '—'}
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">

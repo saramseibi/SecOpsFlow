@@ -41,7 +41,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none pl-3 pr-8 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors cursor-pointer"
+        className="appearance-none pl-3 pr-8 py-1.5 bg-input border border-border rounded-md text-sm text-foreground focus:outline-none focus:border-primary/70 focus:ring-4 focus:ring-primary/15 hover:border-border-strong transition-colors cursor-pointer"
         aria-label={label}
       >
         {options.map((opt) => (
@@ -96,7 +96,7 @@ export default function VulnFilterBar({
             placeholder="Search title, CVE, CWE, file path..."
             value={filters.search}
             onChange={(e) => onChange({ ...filters, search: e.target.value })}
-            className="w-full pl-8 pr-3 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
+            className="w-full pl-8 pr-3 py-1.5 bg-input border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/70 focus:ring-4 focus:ring-primary/15 hover:border-border-strong transition-colors"
           />
           {filters.search && (
             <button

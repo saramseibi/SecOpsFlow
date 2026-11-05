@@ -1,3 +1,6 @@
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -10,11 +13,21 @@ from routes.github import router as github_router
 from routes.scans import router as scans_router
 from routes.vulnerabilities import router as vulnerabilities_router
 from routes.webhook import router as webhook_router
+from routes.webhook import run_scan_reconciler
 
 Base.metadata.create_all(bind=engine)
 run_startup_migrations()
 
-app = FastAPI(title="SecOpsFlow API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Finalizes scans whose workflow_run webhook never arrived (see routes/webhook.py).
+    reconciler = asyncio.create_task(run_scan_reconciler())
+    yield
+    reconciler.cancel()
+
+
+app = FastAPI(title="SecOpsFlow API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

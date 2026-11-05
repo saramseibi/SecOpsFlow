@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, XCircle, Loader2, Activity, Clock, ShieldAlert } from 'lucide-react';
-import Icon from '@/components/ui/AppIcon';
+import CountUp from '@/components/motion/CountUp';
+import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import type { ScansSummary } from '@/types';
 
 interface ScansStatsBarProps {
@@ -8,77 +9,104 @@ interface ScansStatsBarProps {
   loading: boolean;
 }
 
-export default function ScansStatsBar({ summary, loading }: ScansStatsBarProps) {
-  const v = (n: number | undefined) => (loading ? '—' : String(n ?? 0));
-  const avgDuration = summary?.avg_duration_seconds ?? 0;
+function formatDuration(seconds: number) {
+  if (seconds < 60) return `${seconds}s`;
+  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+}
 
-  const stats = [
+// Same treatment as the dashboard's secondary metrics row: one card, hairline-divided
+// cells, a round tinted icon per metric.
+export default function ScansStatsBar({ summary, loading }: ScansStatsBarProps) {
+  const running = summary?.running ?? 0;
+
+  const stats: {
+    key: string;
+    label: string;
+    value: React.ReactNode;
+    icon: React.ElementType;
+    tone: string;
+    spin?: boolean;
+  }[] = [
     {
       key: 'stat-total-scans',
       label: 'Total Scans',
-      value: v(summary?.total),
+      value: <CountUp value={summary?.total ?? 0} />,
       icon: Activity,
-      iconClass: 'text-primary',
-      bgClass: 'bg-primary/10',
+      tone: 'var(--primary)',
     },
     {
       key: 'stat-completed',
       label: 'Completed',
-      value: v(summary?.completed),
+      value: <CountUp value={summary?.completed ?? 0} />,
       icon: CheckCircle2,
-      iconClass: 'text-success',
-      bgClass: 'bg-success/10',
+      tone: 'var(--success)',
     },
     {
       key: 'stat-failed',
       label: 'Failed',
-      value: v(summary?.failed),
+      value: <CountUp value={summary?.failed ?? 0} />,
       icon: XCircle,
-      iconClass: 'text-critical',
-      bgClass: 'bg-critical/10',
+      tone: 'var(--critical)',
     },
     {
       key: 'stat-running',
       label: 'Running Now',
-      value: v(summary?.running),
+      value: <CountUp value={running} />,
       icon: Loader2,
-      iconClass: 'text-primary',
-      bgClass: 'bg-primary/10',
+      tone: 'var(--low)',
+      spin: running > 0,
     },
     {
       key: 'stat-avg-duration',
       label: 'Avg. Duration',
-      value: loading ? '—' : `${Math.floor(avgDuration / 60)}m ${avgDuration % 60}s`,
+      value: formatDuration(summary?.avg_duration_seconds ?? 0),
       icon: Clock,
-      iconClass: 'text-muted-foreground',
-      bgClass: 'bg-muted',
+      tone: 'var(--info)',
     },
     {
       key: 'stat-total-findings',
       label: 'Total Findings',
-      value: v(summary?.total_findings),
+      value: <CountUp value={summary?.total_findings ?? 0} />,
       icon: ShieldAlert,
-      iconClass: 'text-warning',
-      bgClass: 'bg-warning/10',
+      tone: 'var(--high)',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-      {stats?.map((stat) => {
-        const Icon = stat?.icon;
-        return (
-          <div key={stat?.key} className="card-elevated px-4 py-3 flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${stat?.bgClass}`}>
-              <Icon size={15} className={stat?.iconClass} />
+    <div className="card-elevated overflow-hidden">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-px bg-border">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div
+              key={stat.key}
+              className="bg-card px-4 sm:px-5 py-4 flex items-center gap-3.5 min-w-0"
+              style={{ '--tone': stat.tone } as React.CSSProperties}
+            >
+              <div className="tone w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0">
+                <Icon
+                  size={16}
+                  strokeWidth={1.9}
+                  aria-hidden="true"
+                  className={stat.spin ? 'animate-spin' : undefined}
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">{stat.label}</p>
+                <div className="h-7 flex items-center">
+                  {loading ? (
+                    <Skeleton className="h-5 w-12" />
+                  ) : (
+                    <span className="text-xl font-semibold tracking-tight text-foreground font-tabular">
+                      {stat.value}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-[11px] text-muted-foreground">{stat?.label}</p>
-              <p className="text-sm font-bold text-foreground font-tabular">{stat?.value}</p>
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -48,6 +48,9 @@ _COLUMN_ADDITIONS: dict[str, dict[str, str]] = {
         "dast_artifact_last_checked_at": "DATETIME",
         "dast_only": "BOOLEAN",
     },
+    "vulnerabilities": {
+        "ai_analysis": "TEXT",
+    },
     "scanner_results": {
         "category": "VARCHAR(100)",
         "summary": "VARCHAR(255)",

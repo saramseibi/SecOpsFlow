@@ -62,6 +62,27 @@ async def get_summary(current_user: User = Depends(get_current_user), db: Sessio
         db.query(func.count(Scan.id)).filter(Scan.started_at >= week_ago, scan_scope).scalar() or 0
     )
 
+    # Last-7-days movement, so the KPI cards can show direction and not just a level.
+    new_this_week = {sev: 0 for sev in _SEVERITIES}
+    for severity, count in (
+        db.query(Vulnerability.severity, func.count(Vulnerability.id))
+        .filter(Vulnerability.detected_at >= week_ago, vuln_scope)
+        .group_by(Vulnerability.severity)
+        .all()
+    ):
+        if severity in new_this_week:
+            new_this_week[severity] = count
+    resolved_this_week = (
+        db.query(func.count(Vulnerability.id))
+        .filter(
+            Vulnerability.status == "resolved",
+            Vulnerability.resolved_at >= week_ago,
+            vuln_scope,
+        )
+        .scalar()
+        or 0
+    )
+
     return DashboardSummaryOut(
         total_vulnerabilities=total_open,
         critical_count=severity_counts["critical"],
@@ -74,6 +95,10 @@ async def get_summary(current_user: User = Depends(get_current_user), db: Sessio
         resolved_count=resolved_count,
         mttr_days=round(mttr_days, 1),
         scans_this_week=scans_this_week,
+        new_this_week=sum(new_this_week.values()),
+        critical_new_this_week=new_this_week["critical"],
+        high_new_this_week=new_this_week["high"],
+        resolved_this_week=resolved_this_week,
     )
 
 

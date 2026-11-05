@@ -45,6 +45,13 @@ class VulnerabilityOut(BaseModel):
     detected_at: datetime
 
 
+class VulnAIAnalysisOut(BaseModel):
+    explanation: str
+    impact: str
+    suggested_fix: str
+    verification: str
+
+
 class ScanOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -140,6 +147,11 @@ class DashboardSummaryOut(BaseModel):
     resolved_count: int
     mttr_days: float
     scans_this_week: int
+    # Findings detected / resolved in the last 7 days (any current status for "new").
+    new_this_week: int = 0
+    critical_new_this_week: int = 0
+    high_new_this_week: int = 0
+    resolved_this_week: int = 0
 
 
 class TrendDataPointOut(BaseModel):

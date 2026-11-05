@@ -8,6 +8,8 @@ import '../styles/tailwind.css';
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: '#080a0e',
+  colorScheme: 'dark',
 };
 
 export const metadata: Metadata = {
@@ -24,11 +26,24 @@ export const metadata: Metadata = {
   manifest: '/site.webmanifest',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    // suppressHydrationWarning: the inline script below adds a data attribute to <html> before hydration.
+    <html
+      lang="en"
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script
+          // Runs before first paint: lets CSS hold entrance-animated content hidden until
+          // GSAP takes over, so server-rendered HTML doesn't flash. Skipped for reduced motion.
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.setAttribute('data-reveal-pending','')}catch(e){}",
+          }}
+        />
+      </head>
       <body className={GeistSans.className}>
         {children}
         <Toaster
@@ -36,14 +51,16 @@ export default function RootLayout({
           theme="dark"
           toastOptions={{
             style: {
-              background: '#161b22',
-              border: '1px solid #30363d',
-              color: '#e6edf3',
-              fontSize: '0.875rem',
+              background: 'rgb(var(--muted))',
+              border: '1px solid rgb(var(--border-strong))',
+              color: 'rgb(var(--foreground))',
+              fontSize: '0.8125rem',
+              borderRadius: '10px',
+              boxShadow: '0 16px 40px -12px rgb(0 0 0 / 0.7)',
             },
           }}
         />
-</body>
+      </body>
     </html>
   );
 }

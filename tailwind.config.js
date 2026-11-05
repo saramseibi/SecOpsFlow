@@ -1,4 +1,9 @@
 /** @type {import('tailwindcss').Config} */
+
+// Tokens are stored as space-separated RGB channels (see src/styles/tailwind.css) so
+// Tailwind's opacity modifiers (`bg-primary/10`, `border-critical/30`) actually compile.
+const token = (name) => `rgb(var(--${name}) / <alpha-value>)`;
+
 module.exports = {
   content: [
     './src/**/*.{js,ts,jsx,tsx,mdx}',
@@ -11,73 +16,60 @@ module.exports = {
     },
     extend: {
       colors: {
-        background: { DEFAULT: 'var(--background)' },
-        foreground: { DEFAULT: 'var(--foreground)' },
+        background: { DEFAULT: token('background') },
+        shell: { DEFAULT: token('shell') },
+        foreground: { DEFAULT: token('foreground') },
         primary: {
-          DEFAULT: 'var(--primary)',
-          foreground: 'var(--primary-foreground)',
+          DEFAULT: token('primary'),
+          foreground: token('primary-foreground'),
         },
         secondary: {
-          DEFAULT: 'var(--secondary)',
-          foreground: 'var(--secondary-foreground)',
+          DEFAULT: token('secondary'),
+          foreground: token('secondary-foreground'),
         },
         accent: {
-          DEFAULT: 'var(--accent)',
-          foreground: 'var(--accent-foreground)',
+          DEFAULT: token('accent'),
+          foreground: token('accent-foreground'),
         },
         muted: {
-          DEFAULT: 'var(--muted)',
-          foreground: 'var(--muted-foreground)',
+          DEFAULT: token('muted'),
+          foreground: token('muted-foreground'),
         },
         card: {
-          DEFAULT: 'var(--card)',
-          foreground: 'var(--card-foreground)',
+          DEFAULT: token('card'),
+          foreground: token('card-foreground'),
         },
-        border: { DEFAULT: 'var(--border)' },
-        input: { DEFAULT: 'var(--input)' },
-        ring: { DEFAULT: 'var(--ring)' },
-        critical: {
-          DEFAULT: 'var(--critical)',
-          bg: 'var(--critical-bg)',
-          muted: 'var(--critical-muted)',
-        },
-        high: {
-          DEFAULT: 'var(--high)',
-          bg: 'var(--high-bg)',
-          muted: 'var(--high-muted)',
-        },
-        medium: {
-          DEFAULT: 'var(--medium)',
-          bg: 'var(--medium-bg)',
-          muted: 'var(--medium-muted)',
-        },
-        low: {
-          DEFAULT: 'var(--low)',
-          bg: 'var(--low-bg)',
-          muted: 'var(--low-muted)',
-        },
-        success: {
-          DEFAULT: 'var(--success)',
-          bg: 'var(--success-bg)',
-        },
-        warning: {
-          DEFAULT: 'var(--warning)',
-          bg: 'var(--warning-bg)',
-        },
-        danger: {
-          DEFAULT: 'var(--danger)',
-          bg: 'var(--danger-bg)',
-        },
+        border: { DEFAULT: token('border'), strong: token('border-strong') },
+        input: { DEFAULT: token('input') },
+        ring: { DEFAULT: token('ring') },
+        critical: { DEFAULT: token('critical') },
+        high: { DEFAULT: token('high') },
+        medium: { DEFAULT: token('medium') },
+        low: { DEFAULT: token('low') },
+        info: { DEFAULT: token('info') },
+        success: { DEFAULT: token('success') },
+        warning: { DEFAULT: token('warning') },
+        danger: { DEFAULT: token('danger') },
       },
       borderRadius: {
         DEFAULT: 'var(--radius)',
-        sm: 'calc(var(--radius) - 2px)',
-        lg: 'calc(var(--radius) + 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+        md: 'calc(var(--radius) - 2px)',
+        lg: 'var(--radius)',
         xl: 'calc(var(--radius) + 4px)',
+        '2xl': 'calc(var(--radius) + 8px)',
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
+      },
+      boxShadow: {
+        sm: '0 1px 2px rgb(0 0 0 / 0.35)',
+        xl: '0 12px 32px -8px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(var(--border) / 0.6)',
+        '2xl': '0 24px 64px -12px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(var(--border) / 0.6)',
+      },
+      transitionTimingFunction: {
+        out: 'cubic-bezier(0.22, 1, 0.36, 1)',
       },
       animation: {
         'fade-in': 'fadeIn 200ms ease-in-out',

@@ -18,10 +18,11 @@ export default function SeverityBadge({ severity, size = 'sm' }: SeverityBadgePr
   const config = SEVERITY_CONFIG[severity];
   return (
     <span
-      className={`inline-flex items-center font-semibold rounded-sm font-tabular ${config.className} ${
-        size === 'sm' ? 'text-[11px] px-1.5 py-0.5' : 'text-xs px-2 py-1'
+      className={`inline-flex items-center gap-1.5 font-semibold rounded-md font-tabular whitespace-nowrap ${config.className} ${
+        size === 'sm' ? 'text-xs px-1.5 py-0.5' : 'text-[13px] px-2 py-1'
       }`}
     >
+      <span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />
       {config.label}
     </span>
   );

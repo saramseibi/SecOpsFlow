@@ -172,9 +172,9 @@ export default function VulnerabilitiesClient() {
   return (
     <div className="space-y-4">
       {/* Header actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
             {scanId ? 'Scan Vulnerabilities' : 'All Vulnerabilities'}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">

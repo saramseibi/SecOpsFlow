@@ -1,7 +1,17 @@
 'use client';
 
 import React from 'react';
-import { Search, X, ChevronDown, Building2, GitBranch, Workflow, Play, Loader2, CheckCircle2 } from 'lucide-react';
+import {
+  Search,
+  X,
+  ChevronDown,
+  Building2,
+  GitBranch,
+  Workflow,
+  Play,
+  Loader2,
+  CheckCircle2,
+} from 'lucide-react';
 import type { GithubRepo, RepoWorkflow } from '@/types';
 
 export interface AccountOption {
@@ -24,8 +34,6 @@ type ScanState = 'idle' | 'loading' | 'success' | 'error';
 interface ScanFilterBarProps {
   filters: ScanFilters;
   onChange: (filters: ScanFilters) => void;
-  totalCount: number;
-  filteredCount: number;
   accounts: AccountOption[];
   repos: GithubRepo[];
   reposLoading: boolean;
@@ -62,7 +70,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none pl-3 pr-8 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors cursor-pointer"
+        className="appearance-none pl-3 pr-8 h-9 bg-input border border-border rounded-lg text-[13px] text-foreground focus:outline-none focus:border-primary/70 focus:ring-4 focus:ring-primary/15 hover:border-border-strong transition-colors cursor-pointer"
         aria-label={label}
       >
         {options.map((opt) => (
@@ -71,7 +79,10 @@ function FilterSelect({
           </option>
         ))}
       </select>
-      <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+      <ChevronDown
+        size={12}
+        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+      />
     </div>
   );
 }
@@ -79,8 +90,6 @@ function FilterSelect({
 export default function ScanFilterBar({
   filters,
   onChange,
-  totalCount,
-  filteredCount,
   accounts,
   repos,
   reposLoading,
@@ -103,27 +112,26 @@ export default function ScanFilterBar({
 
   const selectedRepo = repos.find((r) => r.db_id === filters.repositoryId) ?? null;
 
-  const accountLabel = (login: string) => {
-    const acc = accounts.find((a) => a.login === login);
-    return acc?.type === 'personal' ? 'Personal' : login;
-  };
-
   return (
     <div className="card-elevated px-4 py-3">
       <div className="flex flex-wrap items-center gap-2">
         {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search
+            size={13}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
           <input
             type="text"
             placeholder="Search scan ID, repository, commit SHA..."
             value={filters.search}
             onChange={(e) => onChange({ ...filters, search: e.target.value })}
-            className="w-full pl-8 pr-3 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
+            className="w-full pl-8 pr-3 h-9 bg-input border border-border rounded-lg text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/70 focus:ring-4 focus:ring-primary/15 hover:border-border-strong transition-colors"
           />
           {filters.search && (
             <button
               onClick={() => onChange({ ...filters, search: '' })}
+              aria-label="Clear search"
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               <X size={12} />
@@ -133,13 +141,16 @@ export default function ScanFilterBar({
 
         {/* Account dropdown */}
         <div className="relative">
-          <Building2 size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Building2
+            size={13}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+          />
           <select
             value={filters.accountLogin}
             onChange={(e) =>
               onChange({ ...filters, accountLogin: e.target.value, repositoryId: ALL_REPOSITORIES })
             }
-            className="appearance-none pl-7 pr-8 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors cursor-pointer max-w-[160px]"
+            className="appearance-none pl-7 pr-8 h-9 bg-input border border-border rounded-lg text-[13px] text-foreground focus:outline-none focus:border-primary/70 focus:ring-4 focus:ring-primary/15 hover:border-border-strong transition-colors cursor-pointer max-w-[160px]"
             aria-label="Account filter"
           >
             {accounts.map((acc) => (
@@ -148,27 +159,38 @@ export default function ScanFilterBar({
               </option>
             ))}
           </select>
-          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <ChevronDown
+            size={12}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+          />
         </div>
 
         {/* Repository dropdown */}
         <div className="relative">
-          <GitBranch size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <GitBranch
+            size={13}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+          />
           <select
             value={filters.repositoryId}
             onChange={(e) => onChange({ ...filters, repositoryId: e.target.value })}
             disabled={reposLoading}
-            className="appearance-none pl-7 pr-8 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors cursor-pointer max-w-[180px] disabled:opacity-60"
+            className="appearance-none pl-7 pr-8 h-9 bg-input border border-border rounded-lg text-[13px] text-foreground focus:outline-none focus:border-primary/70 focus:ring-4 focus:ring-primary/15 hover:border-border-strong transition-colors cursor-pointer max-w-[180px] disabled:opacity-60"
             aria-label="Repository filter"
           >
-            <option value={ALL_REPOSITORIES}>{reposLoading ? 'Loading…' : 'All Repositories'}</option>
+            <option value={ALL_REPOSITORIES}>
+              {reposLoading ? 'Loading…' : 'All Repositories'}
+            </option>
             {repos.map((repo) => (
               <option key={`repo-opt-${repo.github_id}`} value={repo.db_id}>
                 {repo.name}
               </option>
             ))}
           </select>
-          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <ChevronDown
+            size={12}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+          />
         </div>
 
         {/* Branch dropdown -- only meaningful once a specific repo is selected; controls
@@ -179,7 +201,7 @@ export default function ScanFilterBar({
               value={scanBranch}
               onChange={(e) => onScanBranchChange(e.target.value)}
               disabled={scanBranchesLoading || scanBranches.length === 0}
-              className="appearance-none pl-3 pr-8 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors cursor-pointer max-w-[160px] disabled:opacity-60"
+              className="appearance-none pl-3 pr-8 h-9 bg-input border border-border rounded-lg text-[13px] text-foreground focus:outline-none focus:border-primary/70 focus:ring-4 focus:ring-primary/15 hover:border-border-strong transition-colors cursor-pointer max-w-[160px] disabled:opacity-60"
               aria-label="Branch to scan"
             >
               {scanBranchesLoading || scanBranches.length === 0 ? (
@@ -192,7 +214,10 @@ export default function ScanFilterBar({
                 ))
               )}
             </select>
-            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <ChevronDown
+              size={12}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+            />
           </div>
         )}
 
@@ -200,12 +225,15 @@ export default function ScanFilterBar({
             dispatches, since a branch can carry a workflow no other branch has. */}
         {selectedRepo && scanBranch && (
           <div className="relative">
-            <Workflow size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Workflow
+              size={13}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+            />
             <select
               value={scanWorkflowPath}
               onChange={(e) => onScanWorkflowChange(e.target.value)}
               disabled={scanWorkflowsLoading || scanWorkflows.length === 0}
-              className="appearance-none pl-7 pr-8 py-1.5 bg-muted border border-border rounded-md text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors cursor-pointer max-w-[180px] disabled:opacity-60"
+              className="appearance-none pl-7 pr-8 h-9 bg-input border border-border rounded-lg text-[13px] text-foreground focus:outline-none focus:border-primary/70 focus:ring-4 focus:ring-primary/15 hover:border-border-strong transition-colors cursor-pointer max-w-[180px] disabled:opacity-60"
               aria-label="Workflow to run"
             >
               {scanWorkflowsLoading ? (
@@ -220,19 +248,38 @@ export default function ScanFilterBar({
                 ))
               )}
             </select>
-            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <ChevronDown
+              size={12}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+            />
           </div>
         )}
 
-        <FilterSelect value={filters.status} options={STATUS_OPTIONS} onChange={(v) => onChange({ ...filters, status: v })} label="Scan status filter" />
-        <FilterSelect value={filters.trigger} options={TRIGGER_OPTIONS} onChange={(v) => onChange({ ...filters, trigger: v })} label="Scan trigger filter" />
+        <FilterSelect
+          value={filters.status}
+          options={STATUS_OPTIONS}
+          onChange={(v) => onChange({ ...filters, status: v })}
+          label="Scan status filter"
+        />
+        <FilterSelect
+          value={filters.trigger}
+          options={TRIGGER_OPTIONS}
+          onChange={(v) => onChange({ ...filters, trigger: v })}
+          label="Scan trigger filter"
+        />
 
         {hasActive && (
           <button
             onClick={() =>
-              onChange({ search: '', status: 'All Statuses', trigger: 'All Triggers', accountLogin: filters.accountLogin, repositoryId: ALL_REPOSITORIES })
+              onChange({
+                search: '',
+                status: 'All Statuses',
+                trigger: 'All Triggers',
+                accountLogin: filters.accountLogin,
+                repositoryId: ALL_REPOSITORIES,
+              })
             }
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md hover:bg-muted transition-colors"
+            className="h-9 flex items-center gap-1.5 px-3 text-[13px] text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
           >
             <X size={12} /> Clear
           </button>
@@ -245,16 +292,18 @@ export default function ScanFilterBar({
           title={
             selectedRepo
               ? `Scan ${selectedRepo.full_name}@${scanBranch || selectedRepo.default_branch}${
-                  scanWorkflowPath ? ` using ${scanWorkflows.find((w) => w.path === scanWorkflowPath)?.name ?? scanWorkflowPath}` : ''
+                  scanWorkflowPath
+                    ? ` using ${scanWorkflows.find((w) => w.path === scanWorkflowPath)?.name ?? scanWorkflowPath}`
+                    : ''
                 } now`
               : 'Select a specific repository to scan'
           }
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+          className={`ml-auto h-9 flex items-center gap-1.5 px-3.5 rounded-lg text-[13px] font-medium border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
             scanState === 'success'
               ? 'bg-success/10 border-success/20 text-success'
               : scanState === 'error'
-              ? 'bg-destructive/10 border-destructive/20 text-destructive'
-              : 'bg-primary/10 border-primary/20 text-primary hover:bg-primary/20'
+                ? 'bg-danger/10 border-danger/25 text-danger'
+                : 'bg-primary/10 border-primary/20 text-primary hover:bg-primary/20'
           }`}
         >
           {scanState === 'loading' ? (
@@ -267,18 +316,11 @@ export default function ScanFilterBar({
           {scanState === 'loading'
             ? 'Scanning…'
             : scanState === 'success'
-            ? 'Scan triggered'
-            : scanState === 'error'
-            ? 'Failed — retry'
-            : 'Run Scan Now'}
+              ? 'Scan triggered'
+              : scanState === 'error'
+                ? 'Failed — retry'
+                : 'Run Scan Now'}
         </button>
-
-        <div className="ml-auto text-xs text-muted-foreground font-tabular">
-          <span className="text-foreground font-semibold">{filteredCount}</span> of{' '}
-          <span className="text-foreground font-semibold">{totalCount}</span> scans
-          {' · '}
-          <span className="text-foreground font-medium">{accountLabel(filters.accountLogin)}</span>
-        </div>
       </div>
     </div>
   );

@@ -81,7 +81,7 @@ export default function SettingsClient() {
   return (
     <div className="max-w-lg mx-auto space-y-6">
       {/* Change password */}
-      <div className="bg-card border border-border rounded-lg p-6">
+      <div className="card-elevated p-6">
         <h2 className="text-sm font-semibold text-foreground mb-1">Change Password</h2>
         <p className="text-xs text-muted-foreground mb-5">
           Enter your current password and a new password to update your credentials.
@@ -110,7 +110,7 @@ export default function SettingsClient() {
                 value={form.current_password}
                 onChange={handleChange}
                 placeholder="Enter your current password"
-                className="w-full bg-input border border-border rounded-lg pl-9 pr-10 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/30"
+                className="w-full bg-input border border-border rounded-lg pl-9 pr-10 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-primary/70 focus:ring-4 focus:ring-primary/15 hover:border-border-strong"
               />
               <button
                 type="button"
@@ -138,7 +138,7 @@ export default function SettingsClient() {
                 value={form.new_password}
                 onChange={handleChange}
                 placeholder="At least 8 characters"
-                className="w-full bg-input border border-border rounded-lg pl-9 pr-10 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/30"
+                className="w-full bg-input border border-border rounded-lg pl-9 pr-10 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-primary/70 focus:ring-4 focus:ring-primary/15 hover:border-border-strong"
               />
               <button
                 type="button"

@@ -302,6 +302,38 @@ async def list_run_artifacts(org: str, repo: str, run_id: int, token: str) -> li
     return res.json().get("artifacts", [])
 
 
+async def list_runs_for_commit(org: str, repo: str, head_sha: str, token: str) -> list[dict]:
+    """Every workflow run GitHub has for `head_sha` -- used to find a scan's run without a
+    webhook, when the workflow_run event was never delivered.
+    """
+    async with httpx.AsyncClient() as client:
+        res = await client.get(
+            f"{GITHUB_API_URL}/repos/{org}/{repo}/actions/runs",
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+            params={"head_sha": head_sha, "per_page": 100},
+        )
+    if res.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Failed to list workflow runs for {org}/{repo}@{head_sha}: {res.text}",
+        )
+    return res.json().get("workflow_runs", [])
+
+
+async def get_workflow_run(org: str, repo: str, run_id: int | str, token: str) -> dict:
+    async with httpx.AsyncClient() as client:
+        res = await client.get(
+            f"{GITHUB_API_URL}/repos/{org}/{repo}/actions/runs/{run_id}",
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+        )
+    if res.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Failed to fetch workflow run {run_id} for {org}/{repo}: {res.text}",
+        )
+    return res.json()
+
+
 def find_report_artifact(artifacts: list[dict]) -> dict | None:
     """Pick out the consolidated `CI_REPORT_ARTIFACT_NAME` artifact (if any) from a run's
     artifact list, ignoring the per-job scan-result.json artifacts.

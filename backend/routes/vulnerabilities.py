@@ -1,15 +1,19 @@
+import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import ValidationError
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.access import get_user_accessible_logins, repo_scope_clause
+from app.ai_service import generate_analysis
 from app.database import get_db
 from models.user import User
 from models.vulnerability import Vulnerability
 from routes.auth import get_current_user
 from shemas.schemas import (
+    VulnAIAnalysisOut,
     VulnBulkUpdateIn,
     VulnerabilityListOut,
     VulnerabilityOut,
@@ -136,7 +140,27 @@ async def get_vulnerability(
     return VulnerabilityOut.model_validate(vuln)
 
 
-@router.patch("/bulk/update", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/{vuln_id}/ai-analysis", response_model=VulnAIAnalysisOut)
+async def ai_analyze_vulnerability(
+    vuln_id: str,
+    regenerate: bool = Query(False),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    vuln = await _get_owned_vulnerability(vuln_id, current_user, db)
+    if vuln.ai_analysis and not regenerate:
+        try:
+            return VulnAIAnalysisOut.model_validate(json.loads(vuln.ai_analysis))
+        except (ValueError, ValidationError):
+            pass  # corrupt cache entry: fall through and regenerate
+    analysis = await generate_analysis(vuln)
+    vuln.ai_analysis = json.dumps(analysis)
+    db.add(vuln)
+    db.commit()
+    return VulnAIAnalysisOut(**analysis)
+
+
+@router.patch("/bulk/update",status_code=status.HTTP_204_NO_CONTENT)
 async def bulk_update_vulnerabilities(
     body: VulnBulkUpdateIn,
     current_user: User = Depends(get_current_user),

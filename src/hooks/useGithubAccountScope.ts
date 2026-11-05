@@ -16,6 +16,8 @@ interface CurrentUser {
 
 interface UseGithubAccountScopeResult {
   personalLogin: string | null;
+  /** The current-user lookup has finished, so a null personalLogin means "not connected". */
+  userLoaded: boolean;
   accounts: AccountOption[];
   repos: GithubRepo[];
   reposLoading: boolean;
@@ -30,6 +32,7 @@ interface UseGithubAccountScopeResult {
  */
 export function useGithubAccountScope(selectedAccountLogin: string): UseGithubAccountScopeResult {
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const [userLoaded, setUserLoaded] = useState(false);
   const [orgs, setOrgs] = useState<GithubOrg[]>([]);
   const [repos, setRepos] = useState<GithubRepo[]>([]);
   const [reposLoading, setReposLoading] = useState(false);
@@ -42,7 +45,10 @@ export function useGithubAccountScope(selectedAccountLogin: string): UseGithubAc
       .then((data) => {
         if (!cancelled && data?.user) setUser(data.user);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setUserLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -85,7 +91,9 @@ export function useGithubAccountScope(selectedAccountLogin: string): UseGithubAc
     const isPersonal = accounts.find((a) => a.login === selectedAccountLogin)?.type === 'personal';
     let cancelled = false;
     setReposLoading(true);
-    fetch(`/api/github/repos?org=${encodeURIComponent(isPersonal ? PERSONAL_ORG_PARAM : selectedAccountLogin)}`)
+    fetch(
+      `/api/github/repos?org=${encodeURIComponent(isPersonal ? PERSONAL_ORG_PARAM : selectedAccountLogin)}`
+    )
       .then((res) => {
         if (res.status === 401 && !cancelled) setReconnectRequired(true);
         return res.ok ? res.json() : [];
@@ -102,7 +110,14 @@ export function useGithubAccountScope(selectedAccountLogin: string): UseGithubAc
     };
   }, [selectedAccountLogin, accounts]);
 
-  return { personalLogin: user?.github_username ?? null, accounts, repos, reposLoading, reconnectRequired };
+  return {
+    personalLogin: user?.github_username ?? null,
+    userLoaded,
+    accounts,
+    repos,
+    reposLoading,
+    reconnectRequired,
+  };
 }
 
 export { PERSONAL_ORG_PARAM };

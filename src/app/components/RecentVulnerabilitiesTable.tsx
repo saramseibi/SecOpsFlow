@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ShieldCheck } from 'lucide-react';
 import SeverityBadge from '@/components/ui/SeverityBadge';
 import StatusBadge from '@/components/ui/StatusBadge';
+import CveLink from '@/components/ui/CveLink';
 import type { Vulnerability } from '@/types';
 
 function formatRelative(dateStr: string) {
@@ -20,6 +21,7 @@ function formatRelative(dateStr: string) {
 
 export default function RecentVulnerabilitiesTable() {
   const [recent, setRecent] = useState<Vulnerability[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -28,7 +30,10 @@ export default function RecentVulnerabilitiesTable() {
       .then((data) => {
         if (!cancelled && Array.isArray(data)) setRecent(data);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -36,16 +41,22 @@ export default function RecentVulnerabilitiesTable() {
 
   return (
     <div className="card-elevated overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+      <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
         <div>
           <h3 className="text-sm font-semibold text-foreground">Recent Vulnerabilities</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Latest findings across all repositories</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Latest findings across all repositories
+          </p>
         </div>
         <Link
           href="/vulnerabilities"
-          className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+          className="group/link flex items-center gap-1.5 text-xs text-primary hover:text-foreground font-medium transition-colors whitespace-nowrap"
         >
-          View all <ArrowRight size={13} />
+          View all{' '}
+          <ArrowRight
+            size={13}
+            className="transition-transform duration-200 group-hover/link:translate-x-0.5"
+          />
         </Link>
       </div>
 
@@ -53,27 +64,47 @@ export default function RecentVulnerabilitiesTable() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Severity</th>
-              <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Title</th>
-              <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Scanner</th>
-              <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">CVE</th>
-              <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Repository</th>
-              <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Detected</th>
-              <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+              <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Severity
+              </th>
+              <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Title
+              </th>
+              <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Scanner
+              </th>
+              <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                CVE
+              </th>
+              <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Repository
+              </th>
+              <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Detected
+              </th>
+              <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Status
+              </th>
             </tr>
           </thead>
           <tbody>
             {recent.map((vuln) => (
               <tr
                 key={vuln.id}
-                className="table-row-hover border-b border-border last:border-0 group cursor-pointer"
+                className="relative table-row-hover border-b border-border last:border-0 group cursor-pointer"
               >
                 <td className="px-5 py-3">
                   <SeverityBadge severity={vuln.severity} />
                 </td>
-                <td className="px-4 py-3 max-w-[260px]">
-                  <p className="text-xs font-medium text-foreground truncate leading-relaxed">{vuln.title}</p>
-                  <p className="text-[11px] text-muted-foreground truncate mt-0.5 font-mono">
+                <td className="px-4 py-3 max-w-[280px]">
+                  <Link
+                    href={`/vulnerabilities/${vuln.id}`}
+                    title={vuln.title}
+                    className="block text-[13px] font-medium text-foreground truncate leading-relaxed group-hover:text-primary transition-colors after:absolute after:inset-0 after:content-['']"
+                  >
+                    {vuln.title}
+                  </Link>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5 font-mono">
                     {vuln.file_path}
                     {vuln.line_number ? `:${vuln.line_number}` : ''}
                   </p>
@@ -82,20 +113,19 @@ export default function RecentVulnerabilitiesTable() {
                   <span className="tag-scanner">{vuln.scanner}</span>
                 </td>
                 <td className="px-4 py-3">
-                  {vuln.cve ? (
-                    <span className="text-[11px] font-mono text-primary font-semibold">{vuln.cve}</span>
-                  ) : (
-                    <span className="text-[11px] text-muted-foreground">—</span>
-                  )}
+                  {/* Above the row-wide link so it stays clickable on its own. */}
+                  <CveLink cve={vuln.cve} className="relative z-10" />
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-col">
-                    <span className="text-xs text-foreground">{vuln.repository}</span>
-                    <span className="text-[11px] text-muted-foreground">{vuln.branch}</span>
+                    <span className="text-[13px] text-foreground">{vuln.repository}</span>
+                    <span className="text-xs text-muted-foreground">{vuln.branch}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="text-xs text-muted-foreground font-tabular">{formatRelative(vuln.detected_at)}</span>
+                  <span className="text-xs text-muted-foreground font-tabular">
+                    {formatRelative(vuln.detected_at)}
+                  </span>
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={vuln.status} />
@@ -104,6 +134,20 @@ export default function RecentVulnerabilitiesTable() {
             ))}
           </tbody>
         </table>
+        {loaded && recent.length === 0 && (
+          <div className="flex flex-col items-center justify-center text-center py-12 px-6">
+            <div
+              className="tone w-10 h-10 rounded-full flex items-center justify-center mb-3"
+              style={{ '--tone': 'var(--success)' } as React.CSSProperties}
+            >
+              <ShieldCheck size={18} />
+            </div>
+            <p className="text-sm font-medium text-foreground">No findings yet</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              New vulnerabilities appear here as scans complete.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

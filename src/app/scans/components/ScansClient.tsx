@@ -9,6 +9,7 @@ import ScanTable from './ScanTable';
 import ScansStatsBar from './ScansStatsBar';
 import VulnPagination from '@/app/vulnerabilities/components/VulnPagination';
 import EmptyState from '@/components/ui/EmptyState';
+import GitHubMark from '@/components/ui/GitHubMark';
 import { TableSkeleton } from '@/components/ui/LoadingSkeleton';
 import { useGithubAccountScope } from '@/hooks/useGithubAccountScope';
 import type { RepoWorkflow, Scan, ScansSummary } from '@/types';
@@ -31,7 +32,9 @@ export default function ScansClient() {
   });
   const [debouncedSearch, setDebouncedSearch] = useState(filters.search);
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
-  const [pageSize, setPageSize] = useState(Number(searchParams.get('pageSize')) || DEFAULT_PAGE_SIZE);
+  const [pageSize, setPageSize] = useState(
+    Number(searchParams.get('pageSize')) || DEFAULT_PAGE_SIZE
+  );
 
   const [scans, setScans] = useState<Scan[]>([]);
   const [total, setTotal] = useState(0);
@@ -46,7 +49,12 @@ export default function ScansClient() {
   const [scanWorkflowsLoading, setScanWorkflowsLoading] = useState(false);
   const [scanWorkflowPath, setScanWorkflowPath] = useState('');
 
-  const { personalLogin, accounts, repos, reposLoading, reconnectRequired } = useGithubAccountScope(filters.accountLogin);
+  const { personalLogin, userLoaded, accounts, repos, reposLoading, reconnectRequired } =
+    useGithubAccountScope(filters.accountLogin);
+  // Scan history is scoped to the user's GitHub accounts, so every fetch below waits for
+  // their login. Without a GitHub connection that never arrives -- show a prompt instead
+  // of leaving the skeletons up indefinitely.
+  const githubNotConnected = userLoaded && !personalLogin;
 
   // Branches for the currently-selected repo, used by the "Run Scan Now" branch picker --
   // defaults to the repo's default branch, but lets a scan be dispatched against any branch
@@ -128,7 +136,9 @@ export default function ScansClient() {
   // URL didn't already specify one).
   useEffect(() => {
     if (!personalLogin) return;
-    setFiltersState((prev) => (prev.accountLogin ? prev : { ...prev, accountLogin: personalLogin }));
+    setFiltersState((prev) =>
+      prev.accountLogin ? prev : { ...prev, accountLogin: personalLogin }
+    );
   }, [personalLogin]);
 
   useEffect(() => {
@@ -148,7 +158,17 @@ export default function ScansClient() {
     if (currentPage > 1) params.set('page', String(currentPage));
     if (pageSize !== DEFAULT_PAGE_SIZE) params.set('pageSize', String(pageSize));
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [filters.accountLogin, filters.repositoryId, filters.status, filters.trigger, debouncedSearch, currentPage, pageSize, pathname, router]);
+  }, [
+    filters.accountLogin,
+    filters.repositoryId,
+    filters.status,
+    filters.trigger,
+    debouncedSearch,
+    currentPage,
+    pageSize,
+    pathname,
+    router,
+  ]);
 
   // Backend query string. A specific repository (internal db_id) always wins over the
   // account filter -- the two are never sent together, mirroring routes/scans.py.
@@ -169,7 +189,15 @@ export default function ScansClient() {
       }
       return params.toString();
     },
-    [filters.repositoryId, filters.accountLogin, filters.status, filters.trigger, debouncedSearch, currentPage, pageSize]
+    [
+      filters.repositoryId,
+      filters.accountLogin,
+      filters.status,
+      filters.trigger,
+      debouncedSearch,
+      currentPage,
+      pageSize,
+    ]
   );
 
   const refetchScans = useCallback(() => {
@@ -204,7 +232,14 @@ export default function ScansClient() {
   useEffect(() => {
     if (!filters.accountLogin) return;
     refetchSummary();
-  }, [filters.accountLogin, filters.repositoryId, filters.status, filters.trigger, debouncedSearch, refetchSummary]);
+  }, [
+    filters.accountLogin,
+    filters.repositoryId,
+    filters.status,
+    filters.trigger,
+    debouncedSearch,
+    refetchSummary,
+  ]);
 
   const handleFiltersChange = (newFilters: ScanFilters) => {
     setFiltersState(newFilters);
@@ -212,7 +247,13 @@ export default function ScansClient() {
   };
 
   const clearFilters = () => {
-    handleFiltersChange({ search: '', status: 'All Statuses', trigger: 'All Triggers', accountLogin: filters.accountLogin, repositoryId: ALL_REPOSITORIES });
+    handleFiltersChange({
+      search: '',
+      status: 'All Statuses',
+      trigger: 'All Triggers',
+      accountLogin: filters.accountLogin,
+      repositoryId: ALL_REPOSITORIES,
+    });
   };
 
   // Once triggered, a scan's completion arrives asynchronously via GitHub's workflow_run
@@ -233,7 +274,9 @@ export default function ScansClient() {
               if (ok) {
                 toast.success('Scan completed.');
               } else {
-                toast.error('Scan failed — the repository may not have a compatible scan workflow.');
+                toast.error(
+                  'Scan failed — the repository may not have a compatible scan workflow.'
+                );
               }
               refetchScans();
               refetchSummary();
@@ -292,25 +335,23 @@ export default function ScansClient() {
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
+  const selectedAccount = accounts.find((a) => a.login === filters.accountLogin);
+  const selectedRepoName = repos.find((r) => r.db_id === filters.repositoryId)?.full_name;
+  const accountScopeLabel = selectedRepoName
+    ? `Scans for ${selectedRepoName}`
+    : selectedAccount?.type === 'organization'
+      ? `Every scan across the ${selectedAccount.login} organization`
+      : 'Every scan across your personal repositories';
+
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Scan History</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          All automated and manual security scans for the selected account
-        </p>
-      </div>
-
       {/* Summary cards -- scoped to the current account/repository filter */}
-      <ScansStatsBar summary={summary} loading={summaryLoading} />
+      <ScansStatsBar summary={summary} loading={summaryLoading && !githubNotConnected} />
 
       {/* Filters (search, account, repository, status, trigger, Run Scan Now) */}
       <ScanFilterBar
         filters={filters}
         onChange={handleFiltersChange}
-        totalCount={total}
-        filteredCount={scans.length}
         accounts={accounts}
         repos={repos}
         reposLoading={reposLoading}
@@ -328,7 +369,31 @@ export default function ScansClient() {
 
       {/* Table card */}
       <div className="card-elevated overflow-hidden">
-        {loading ? (
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-foreground">Scan history</h3>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">{accountScopeLabel}</p>
+          </div>
+          {!loading && !githubNotConnected && (
+            <p className="text-xs text-muted-foreground font-tabular whitespace-nowrap">
+              <span className="text-foreground font-semibold">{total.toLocaleString()}</span>{' '}
+              {total === 1 ? 'scan' : 'scans'}
+            </p>
+          )}
+        </div>
+        {githubNotConnected ? (
+          <EmptyState
+            icon={ScanLine}
+            title="Connect GitHub to see your scans"
+            description="Scan history is pulled from the repositories your GitHub account and organizations can access. Your account isn't linked to GitHub right now."
+            action={
+              <a href="/api/auth/github/start" className="btn-primary">
+                <GitHubMark size={15} />
+                Connect GitHub
+              </a>
+            }
+          />
+        ) : loading ? (
           <TableSkeleton rows={pageSize} cols={10} />
         ) : scans.length === 0 ? (
           <EmptyState
